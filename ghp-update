@@ -1,0 +1,94 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*- #
+
+# This file is part of the ghp-update package released under
+# the GPL v2. See the LICENSE file for more
+# information.
+
+import distutils.dir_util
+import optparse
+import os
+import subprocess
+import tempfile
+
+__usage__ = "%prog [-m \"Custom commit message\"] CONTENT_DIR GIT_REPOSITORY_URL"
+
+def clone_repository(repository_url, destination_dir):
+    """ Clone the repository pointed by the given repository_url into the destionation_dir """
+    cmd = ['git', 'clone', repository_url, destination_dir]
+    pipe = subprocess.Popen(cmd)
+    pipe.wait()
+
+def commit_changes(repository_path, message):
+    """ Commit changes in repository_path with the given message """
+    cmd = ['git', 'commit', '-m', message]
+    pipe = subprocess.Popen(cmd, cwd=repository_path)
+    pipe.wait()
+
+def clear_repository_content(repository_path):
+    """ Remove all files in repository (through git) """
+    cmd = ['git', 'rm', '*']
+    pipe = subprocess.Popen(cmd, cwd=repository_path)
+    pipe.wait()
+    #commit_changes(repository_path, "clear repository content")
+
+def add_content_to_repository(repository_path):
+    """ Add all content of repository_path to repository """
+    cmd = ['git', 'add', '*']
+    pipe = subprocess.Popen(cmd, cwd=repository_path)
+    pipe.wait()
+    #commit_changes(repository_path, message)
+
+def push(repository_path):
+    """ Push master branch of the repository to origin remote location """
+    cmd = ['git', 'push', 'origin', 'master']
+    pipe = subprocess.Popen(cmd, cwd=repository_path)
+    pipe.wait()
+
+def update_repository(content_dir, git_repository, message):
+    """ Run the actual update of the repository """
+    
+    # getting a temp dir path
+    repository_path = tempfile.mkdtemp()
+    
+    # cloning github repository in tempdir
+    clone_repository(git_repository, repository_path)
+    
+    # removing everything in repo
+    clear_repository_content(repository_path)
+    
+    # copying output content to temp dir
+    distutils.dir_util.copy_tree(content_dir, repository_path)
+    
+    # add new output content to repository
+    add_content_to_repository(repository_path)
+    
+    #commit changes
+    commit_changes(repository_path, message)
+    
+    # push to git server
+    push(repository_path)
+    
+    # delete temp dir
+    distutils.dir_util.remove_tree(repository_path)
+
+def options():
+    return [
+        optparse.make_option('-m', dest='message', default='updated pages content',
+            help='The commit message to use when updating the repository content')
+    ]
+
+def main():
+    parser = optparse.OptionParser(usage=__usage__, option_list=options())
+    opts, args = parser.parse_args()
+    
+    if len(args) != 2:
+        parser.error("Not content directory and/or git repository url specified.")
+    
+    if not os.path.isdir(args[0]):
+        parser.error("Not a directory : %s" % args[0])
+    
+    update_repository(args[0], args[1], opts.message)
+
+if __name__ == '__main__':
+    main()
