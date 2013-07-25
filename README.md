@@ -10,6 +10,11 @@ In order to let update your User or Organization Pages easily, `ghp-update` perf
 
 [doc]: https://help.github.com/articles/user-organization-and-project-pages "User, Organization and Project Pages - GitHub Help"
 
+Install
+-------
+
+    pip install ghp-update
+
 Usage
 -----
 
